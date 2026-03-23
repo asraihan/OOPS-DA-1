@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speedline Bus Reservation</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --seat-free: #22c55e;
+            --seat-booked: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        .dashboard {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 { text-align: center; color: var(--primary); }
+        
+        /* The Clickable Buttons */
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover { background-color: #1d4ed8; }
+
+        /* The Seat Grid */
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .seat {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        .seat:active { transform: scale(0.95); }
+        .free { background-color: var(--seat-free); color: white; }
+        .booked { background-color: var(--seat-booked); color: white; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h1>🚌 Speedline Bus</h1>
+        <p>Chennai --> Bangalore</p>
+        
+        <div id="statusMessage">Select a seat to book.</div>
+
+        <div class="seat-grid" id="seatContainer">
+            </div>
+    </div>
+
+    <script src="bus_backend.js"></script>
+    <script>
+        // Wait for the C code to load
+        var Module = {
+            onRuntimeInitialized: function() {
+                renderSeats();
+            }
+        };
+
+        function renderSeats() {
+            const container = document.getElementById('seatContainer');
+            container.innerHTML = ''; // Clear existing
+
+            for (let i = 1; i <= 40; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'seat free';
+                btn.innerText = i;
+                
+                // Add click event to talk to our C code!
+                btn.onclick = () => attemptBooking(i, btn);
+                container.appendChild(btn);
+            }
+        }
+
+        function attemptBooking(seatNo, buttonElement) {
+            // Call the C function 'bookWebSeat'
+            // ccall(functionName, returnType, [argTypes], [args])
+            const result = Module.ccall('bookWebSeat', 'number', ['number', 'number'], [1, seatNo]);
+            
+            if (result === 1) {
+                buttonElement.className = 'seat booked';
+                buttonElement.onclick = null; // Disable clicking again
+                document.getElementById('statusMessage').innerText = `Success! Seat ${seatNo} booked.`;
+                document.getElementById('statusMessage').style.color = 'var(--seat-free)';
+            } else {
+                alert("Booking failed. Seat might be taken.");
+            }
+        }
+    </script>
+</body>
+</html>
